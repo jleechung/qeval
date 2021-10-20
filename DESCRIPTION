@@ -1,0 +1,25 @@
+Package: qeval
+Title: Evaluation of RNA-Seq Quantification
+Version: 0.0.0.9000
+Authors@R: 
+    person("Joseph", "Lee", , "joseph.lee@u.nus.edu", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-4983-4714"))
+Description: Evaluation of RNA-Seq Quantification.
+Imports: 
+    BiocGenerics,
+    data.table,
+    ggplot2,
+    gridExtra,
+    MASS,
+    matrixStats,
+    rtracklayer,
+    SummarizedExperiment,
+    splines,
+    utils,
+    stats
+Depends:
+    R (>= 3.5.0)
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2

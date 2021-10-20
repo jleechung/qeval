@@ -1,0 +1,152 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# qeval
+
+## Installation
+
+```{r, eval = FALSE}
+install.packages("devtools")
+devtools::install_github("jleechung/qeval")
+```
+
+## Usage
+
+```{r, echo=TRUE, results = 'hide', message=FALSE, warning=FALSE}
+library(qeval)
+
+library(SummarizedExperiment)
+library(ggplot2)
+library(gridExtra)
+```
+
+Inputs path to files and their corresponding methods:
+
+```{r, inputs}
+gtf <- list.files(system.file('extdata', package = 'qeval'), full.names = TRUE, pattern = 'rds')
+path <- list.files(system.file('extdata', package = 'qeval'), full.names = TRUE, pattern = 'test_data')
+list.files(path)
+methods <- c('bambu', 'nanocount', 'salmon', 'stringtie')
+se <- constructSE(path, methods)
+``` 
+
+Annotate the summarized experiment:
+
+```{r, annotate}
+gtf <- readRDS(gtf)
+se <- annotateSE(se, gtf)
+se
+``` 
+
+For convenience:
+
+```{r}
+cdata <- colData(se)
+sample_bambu <- cdata$ID[cdata$method == 'bambu']
+sample_nanocount <- cdata$ID[cdata$method == 'nanocount']
+sample_salmon <- cdata$ID[cdata$method == 'salmon']
+sample_stringtie <- cdata$ID[cdata$method == 'stringtie']
+``` 
+
+## Visualisation
+
+```{r, width = 6, height = 6}
+plotHistogram(se, sample_bambu) 
+``` 
+
+We subset to spike-in data:
+
+```{r}
+features <- rownames(se)[!grepl('^ENST', rownames(se))] ## Spike-ins
+``` 
+
+Draw scatter plots with Spearman correlation between bambu and stringtie:
+
+```{r, width = 24, height = 24}
+rowData(se)$log.length <- log10(rowData(se)$length + 1) ## Add log-length to row data
+p1 <- plotScatter(se, sample_bambu[1], sample_stringtie[1], features = features)
+p2 <- plotScatter(se, sample_bambu[1], sample_stringtie[1], density = T, features = features)
+p3 <- plotScatter(se, sample_bambu[1], sample_stringtie[1], density = F, features = features, annotate = 'num.exons')
+p4 <- plotScatter(se, sample_bambu[1], sample_stringtie[1], density = F, features = features, annotate = 'log.length')
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+
+``` 
+
+## Accuracy metrics
+
+```{r, height = 8, width = 8}
+features <- rownames(se)[!grepl('^ENST', rownames(se))] ## Spike-ins
+samples <- colnames(se)
+sample <- sample_bambu ## bambu 
+reference <- sample_stringtie ## use stringtie as a baseline for comparison
+```
+
+Abundance recovery rate:
+
+```{r, height = 8, width = 8}
+ARR <- computeRecovery(se, sample, reference, features = features)
+ARR$metrics
+ARR$plot + geom_hline(yintercept = 1, linetype = 'dashed', color = 2)
+``` 
+
+Relative difference:
+
+```{r, height = 8, width = 8}
+RD <- computeDifference(se, sample, reference, features = features)
+RD$metrics
+RD$plot
+```
+
+Normalized root mean squared error:
+
+```{r}
+computeNRMSE(se, sample, reference, features = features)
+```
+
+## Reproducibility and consistency metrics
+
+Reproducibility:
+
+```{r, width = 24, height = 10}
+rep1 <- computeReproducibility(se, sample_bambu, pt.alpha = 0.2)
+rep1$metric
+r1 <- rep1$plot + labs(title = 'bambu')
+
+rep2 <- computeReproducibility(se, sample_stringtie, pt.alpha = 0.2)
+rep2$metric
+r2 <- rep2$plot + labs(title = 'stringtie')
+
+grid.arrange(r1, r2, ncol = 2)
+``` 
+
+Consistency:
+
+```{r, height = 8, width = 8}
+samples <- c(sample_bambu, sample_stringtie)
+computeConsistency(se, samples)
+``` 
+
+Resolution entropy:
+
+```{r, height = 8, width = 8}
+samples <- c(sample_bambu, sample_stringtie)
+computeResEntropy(se, samples)
+```
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
